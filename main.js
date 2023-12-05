@@ -8,12 +8,9 @@ const WIDTH = window.innerWidth
 const HEIGHT = window.innerHeight
 
 
-// DEFINING SCENE, CAMERA, and RENDERER
+// DEFINING SCENE, SCENE2, CAMERA and RENDERER
 const scene = new THREE.Scene();
 const sceneSecond = new THREE.Scene();
-const imageLoader = new THREE.TextureLoader();
-const catPic = imageLoader.load('cat.jpg');
-
 const camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
 camera.position.set(0, 0, 5);
 const renderer = new THREE.WebGLRenderer({alpha: true});
@@ -21,7 +18,7 @@ renderer.setSize(WIDTH, HEIGHT);
 document.body.appendChild(renderer.domElement);
 
 
-// LIGHT
+// LIGHTS
 const light = new THREE.HemisphereLight(0xffffff, 0x080820, 5);
 scene.add(light);
 const lightSecond = new THREE.HemisphereLight(0xffffff, 0x080820, 5);
@@ -38,14 +35,14 @@ loader.load('3d files/sandwitch.gltf', function (model) {
 });
 
 
-//PLANE
+//PLANE, CATPIC
+const imageLoader = new THREE.TextureLoader();
+const catPic = imageLoader.load('cat.jpg');
+
 const geometry = new THREE.BoxGeometry(9, 6, 2);
 const material = new THREE.MeshStandardMaterial({map: catPic});
 const cube = new THREE.Mesh(geometry, material);
 sceneSecond.add(cube);
-// cube.rotation.set(0, 0.2, 0)
-// const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeWidth/screenARation);
-// let plane = new THREE.Mesh(planeGeometry);
 
 
 // SHADER SETUP
@@ -69,16 +66,13 @@ const fragShader = `
                 gl_FragColor = overlappedTexel;
 			}`;
 
-// const textureLoader = new THREE.TextureLoader();
-// const catPic = textureLoader.load('cat.jpg');
-
 
 // POST PROCESSES
 const compositRenderTarget1 = new THREE.WebGLRenderTarget(WIDTH, HEIGHT);
 const compositRenderTarget2 = new THREE.WebGLRenderTarget(WIDTH, HEIGHT);
 
 
-let shaderUniforms = {
+let compShaderUniforms = {
     input1: {value: compositRenderTarget1.texture},
     input2: {value: compositRenderTarget2.texture},
     time: {value: 1.0}
@@ -86,16 +80,16 @@ let shaderUniforms = {
 
 
 const compositShader = new ShaderMaterial({
-    uniforms: shaderUniforms,
+    uniforms: compShaderUniforms,
     vertexShader: vertexShader,
     fragmentShader: fragShader,
 });
 
 
 const composer = new EffectComposer(renderer);
-
 const compositPass = new ShaderPass(compositShader);
 composer.addPass(compositPass);
+
 
 // RENDERING
 function animate() {
@@ -106,11 +100,9 @@ function animate() {
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
     renderer.setRenderTarget(compositRenderTarget2);
-
-
     renderer.render(sceneSecond, camera);
     renderer.setRenderTarget(null);
-    // shaderUniforms['time'].value = performance.now() / 1000;
+
     composer.render();
 
     compositRenderTarget2.dispose()
